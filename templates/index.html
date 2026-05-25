@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persona - Linkedin Profile Extractor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #0a66c2 0%, #004182 50%, #0a66c2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #0a66c2;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: #0a66c2;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #ccc;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .result-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .result-card:hover {
+            border-color: #0a66c2;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
+            border: 3px solid #0a66c2;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 20px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #0a66c2;
+            color: #0a66c2;
+        }
+
+        .full-text-box {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: white;
+            border-left: 4px solid;
+            padding: 12px 20px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <h1><i class="fab fa-linkedin"></i> Persona - Linkedin Profile Extractor</h1>
+            <p>Extract every visible text from any LinkedIn profile</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('setup')">Setup</button>
+                <button class="tab-btn" onclick="switchTab('search')">Search</button>
+                <button class="tab-btn" onclick="switchTab('results')">Results</button>
+            </div>
+
+            <!-- Setup Tab -->
+            <div id="setupTab" class="tab-content active">
+                <div class="form-grid">
+                    <div><label>LinkedIn Email</label><input type="email" id="email" placeholder="your@email.com"></div>
+                    <div><label>LinkedIn Password</label><input type="password" id="password"></div>
+                    <div><label>Session Name</label><input type="text" id="sessionName" value="default"></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="initializeScraper()" id="btnInit">Initialize
+                        Browser</button>
+                    <button class="btn btn-success" onclick="loginToLinkedIn()" id="btnLogin" disabled>Login</button>
+                    <button class="btn btn-danger" onclick="closeScraper()" id="btnClose" disabled>Close</button>
+                </div>
+                <div id="setupStatus"></div>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="searchTab" class="tab-content">
+                <div class="form-grid">
+                    <div><label>Username (e.g., williamhgates)</label><input type="text" id="usernameKeyword"
+                            placeholder="LinkedIn username"></div>
+                    <div><label>First Name</label><input type="text" id="firstName" placeholder="First name"></div>
+                    <div><label>Last Name</label><input type="text" id="lastName" placeholder="Last name"></div>
+                    <div><label>Company (optional)</label><input type="text" id="company"></div>
+                    <div><label>Max Results</label><select id="maxResults">
+                            <option value="3">3</option>
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
+                        </select></div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="searchProfiles()" id="btnSearch" disabled>Search
+                        LinkedIn</button>
+                    <button class="btn btn-success" onclick="searchAndExtract()" id="btnSearchExtract" disabled>Search &
+                        Extract All</button>
+                </div>
+                <div id="searchStatus"></div>
+                <div id="searchResultsList" style="margin-top:20px;"></div>
+            </div>
+
+            <!-- Results Tab -->
+            <div id="resultsTab" class="tab-content">
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="exportData('json')"><i class="fas fa-file-code"></i> Export
+                        JSON</button>
+                    <button class="btn btn-outline" onclick="exportFullTextAsPDF()"
+                        style="border-color:#ef4444;color:#ef4444;"><i class="fas fa-file-pdf"></i> Export Full Text as
+                        PDF</button>
+                    <button class="btn btn-outline" onclick="clearResults()">Clear Results</button>
+                </div>
+                <div id="resultsContainer">No results yet.</div>
+                <div id="profileDetail" style="margin-top:20px;"></div>
+            </div>
+        </div>
+    </div>
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        let state = { initialized: false, authenticated: false, currentProfiles: [], stats: { searches: 0, profiles: 0 } };
+        let settings = { headless: false, browserType: 'chromium' };
+
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function showToast(msg, type) { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = 'toast'; toast.style.borderLeftColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'; toast.innerHTML = `<span>${msg}</span>`; container.appendChild(toast); setTimeout(() => toast.remove(), 4000); }
+        function showAlert(elId, msg, type) { const el = document.getElementById(elId); if (el) el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`; setTimeout(() => { if (el.querySelector('.alert')) el.innerHTML = ''; }, 5000); }
+        function updateUIState() { document.getElementById('btnInit').disabled = state.initialized; document.getElementById('btnLogin').disabled = !state.initialized || state.authenticated; document.getElementById('btnClose').disabled = !state.initialized; document.getElementById('btnSearch').disabled = !state.authenticated; document.getElementById('btnSearchExtract').disabled = !state.authenticated; }
+        function switchTab(tab) { document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active')); document.getElementById(tab + 'Tab').classList.add('active'); Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.innerText.toLowerCase().includes(tab)).classList.add('active'); }
+
+        async function initializeScraper() {
+            const btn = document.getElementById('btnInit'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing...';
+            showAlert('setupStatus', 'Initializing browser...', 'info');
+            try {
+                const res = await fetch('/api/scraper/init', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ headless: settings.headless, browser_type: settings.browserType, session_name: document.getElementById('sessionName').value }) });
+                const data = await res.json();
+                if (data.success) { state.initialized = true; showToast('Browser initialized', 'success'); showAlert('setupStatus', 'Browser ready', 'success'); }
+                else { showAlert('setupStatus', 'Init failed: ' + data.error, 'error'); }
+            } catch (e) { showAlert('setupStatus', 'Error: ' + e.message, 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = 'Initialize Browser'; updateUIState(); }
+        }
+        async function loginToLinkedIn() {
+            const email = document.getElementById('email').value.trim(), pwd = document.getElementById('password').value;
+            if (!email || !pwd) { showAlert('setupStatus', 'Enter email and password', 'warning'); return; }
+            const btn = document.getElementById('btnLogin'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            try {
+                const res = await fetch('/api/scraper/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pwd }) });
+                const data = await res.json();
+                if (data.success) { state.authenticated = true; showToast('Login successful', 'success'); showAlert('setupStatus', 'Logged in', 'success'); }
+                else { showAlert('setupStatus', 'Login failed', 'error'); }
+            } catch (e) { showAlert('setupStatus', 'Error: ' + e.message, 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = 'Login'; updateUIState(); }
+        }
+        async function closeScraper() { await fetch('/api/scraper/close', { method: 'POST' }); state.initialized = false; state.authenticated = false; updateUIState(); clearResults(); showToast('Scraper closed', 'info'); }
+        function clearResults() { state.currentProfiles = []; document.getElementById('resultsContainer').innerHTML = 'No results.'; document.getElementById('profileDetail').innerHTML = ''; showToast('Results cleared', 'info'); }
+        async function exportData(format) { if (!state.currentProfiles.length) { showToast('No data to export', 'warning'); return; } try { const res = await fetch('/api/scraper/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: { profiles: state.currentProfiles }, format }) }); if (res.ok) { const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `linkedin_export.${format}`; a.click(); URL.revokeObjectURL(url); showToast(`Exported as ${format}`, 'success'); } else { showToast('Export failed', 'error'); } } catch (e) { showToast('Export error: ' + e.message, 'error'); } }
+        async function exportFullTextAsPDF() { if (!state.currentProfiles.length) { showToast('No profiles to export', 'warning'); return; } let content = ""; state.currentProfiles.forEach((p, i) => { content += `PROFILE ${i + 1}: ${p.name || 'Unknown'}\nURL: ${p.profile_url}\n\n--- ABOUT ---\n${p.about || 'N/A'}\n\n--- CURRENT JOB ---\nTitle: ${p.current_job?.title || 'N/A'}\nCompany: ${p.current_job?.company || 'N/A'}\nDuration: ${p.current_job?.duration || 'N/A'}\n\n--- QUALIFICATIONS ---\n${(p.qualifications || []).map(q => `${q.institution} - ${q.degree} (${q.dates})`).join('\n') || 'N/A'}\n\n--- CERTIFICATIONS ---\n${(p.certifications || []).map(c => `${c.name} - ${c.issuer} (${c.date})`).join('\n') || 'N/A'}\n\n${'='.repeat(80)}\n\n`; }); try { const res = await fetch('/api/export-text-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: content }) }); if (res.ok) { const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `linkedin_full_profile.pdf`; a.click(); URL.revokeObjectURL(url); showToast('PDF exported successfully', 'success'); } else { showToast('Export failed', 'error'); } } catch (e) { showToast('Export error: ' + e.message, 'error'); } }
+        async function searchProfiles() {
+            const username = document.getElementById('usernameKeyword').value.trim();
+            let firstName = document.getElementById('firstName').value.trim();
+            let lastName = document.getElementById('lastName').value.trim();
+            const company = document.getElementById('company').value.trim();
+            const maxResults = parseInt(document.getElementById('maxResults').value);
+            if (username) { firstName = username; lastName = ''; }
+            if (!firstName && !lastName) { showAlert('searchStatus', 'Enter username or name', 'warning'); return; }
+            const btn = document.getElementById('btnSearch'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+            try {
+                const res = await fetch('/api/scraper/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ first_name: firstName, last_name: lastName, company, max_results: maxResults }) });
+                const data = await res.json();
+                if (data.success) { displaySearchResults(data.results); showToast(`Found ${data.total} profiles`, 'success'); }
+                else { showAlert('searchStatus', data.error || 'No results', 'warning'); }
+            } catch (e) { showAlert('searchStatus', 'Error: ' + e.message, 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = 'Search LinkedIn'; }
+        }
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResultsList');
+            if (!results.length) { container.innerHTML = '<p>No results found.</p>'; return; }
+            let html = '<h4>Click any profile to extract full text:</h4>';
+            results.forEach(profile => {
+                const initials = (profile.name || '?').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                html += `<div class="result-card" onclick="extractProfileByUrl('${profile.profile_url}')">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:50%;background:#0a66c2;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;">${initials}</div>
+                            <div><strong>${escapeHtml(profile.name)}</strong><br>${escapeHtml(profile.headline || '')}</div>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+        async function extractProfileByUrl(url) {
+            showAlert('searchStatus', `Extracting profile...`, 'info');
+            try {
+                const res = await fetch('/api/scraper/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile_url: url }) });
+                const data = await res.json();
+                if (data.success) {
+                    state.currentProfiles.push(data.profile);
+                    state.stats.profiles++;
+                    updateUIState();
+                    displayExtractedProfiles(state.currentProfiles);
+                    switchTab('results');
+                    showToast('Profile extracted', 'success');
+                } else { showAlert('searchStatus', data.error || 'Extraction failed', 'error'); }
+            } catch (e) { showAlert('searchStatus', 'Error: ' + e.message, 'error'); }
+        }
+        async function searchAndExtract() {
+            const username = document.getElementById('usernameKeyword').value.trim();
+            let firstName = document.getElementById('firstName').value.trim();
+            let lastName = document.getElementById('lastName').value.trim();
+            const company = document.getElementById('company').value.trim();
+            const maxProfiles = parseInt(document.getElementById('maxResults').value);
+            if (username) { firstName = username; lastName = ''; }
+            if (!firstName && !lastName) { showAlert('searchStatus', 'Enter username or name', 'warning'); return; }
+            const btn = document.getElementById('btnSearchExtract'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting...';
+            try {
+                const res = await fetch('/api/scraper/search-and-extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ first_name: firstName, last_name: lastName, company, max_profiles: maxProfiles }) });
+                const data = await res.json();
+                if (data.success) {
+                    state.currentProfiles = data.profiles;
+                    state.stats.profiles += data.profiles.length;
+                    updateUIState();
+                    displayExtractedProfiles(state.currentProfiles);
+                    switchTab('results');
+                    showToast(`Extracted ${data.profiles.length} profiles`, 'success');
+                } else { showAlert('searchStatus', data.error || 'No profiles found', 'error'); }
+            } catch (e) { showAlert('searchStatus', 'Error: ' + e.message, 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = 'Search & Extract All'; }
+        }
+        function displayExtractedProfiles(profiles) {
+            const container = document.getElementById('resultsContainer');
+            if (!profiles.length) { container.innerHTML = '<p>No extracted profiles.</p>'; return; }
+            let html = '';
+            profiles.forEach((p, idx) => {
+                const initials = (p.name || '?').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const jobTitle = p.current_job ? (p.current_job.title || '') : '';
+                const company = p.current_job ? (p.current_job.company || '') : '';
+                const subtitle = [jobTitle, company].filter(Boolean).join(' at ') || 'No current job listed';
+                html += `<div class="result-card" onclick="showProfileDetail(${idx})">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:50%;background:#0a66c2;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;">${initials}</div>
+                            <div><strong>${escapeHtml(p.name || 'Unknown')}</strong><br><span style="color:#666;">${escapeHtml(subtitle)}</span></div>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+        function showProfileDetail(index) {
+            const p = state.currentProfiles[index];
+            if (!p) return;
+            const detailDiv = document.getElementById('profileDetail');
+            let html = `<div style="text-align:center;">${p.profile_picture ? `<img src="${p.profile_picture}" class="profile-pic">` : `<div style="width:100px;height:100px;border-radius:50%;background:#0a66c2;color:white;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;">${(p.name?.[0] || '?')}</div>`}</div>`;
+            html += `<h2>${escapeHtml(p.name || 'Unknown')}</h2>`;
+            if (p.headline) html += `<p style="color:#555;font-size:15px;margin-top:4px;">${escapeHtml(p.headline)}</p>`;
+            if (p.location) html += `<p style="color:#888;font-size:14px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(p.location)}</p>`;
+
+            // About
+            if (p.about) {
+                html += `<div class="section-title"><i class="fas fa-user"></i> About</div>`;
+                html += `<div class="full-text-box" style="max-height:200px;">${escapeHtml(p.about)}</div>`;
+            }
+
+            // Current Job
+            if (p.current_job && (p.current_job.title || p.current_job.company)) {
+                html += `<div class="section-title"><i class="fas fa-briefcase"></i> Current Job</div>`;
+                html += `<div style="background:#f0f7ff;padding:14px;border-radius:10px;border-left:4px solid #0a66c2;">`;
+                if (p.current_job.title) html += `<div style="font-weight:700;font-size:16px;">${escapeHtml(p.current_job.title)}</div>`;
+                if (p.current_job.company) html += `<div style="color:#555;">${escapeHtml(p.current_job.company)}</div>`;
+                if (p.current_job.duration) html += `<div style="color:#888;font-size:13px;">${escapeHtml(p.current_job.duration)}</div>`;
+                if (p.current_job.location) html += `<div style="color:#888;font-size:13px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(p.current_job.location)}</div>`;
+                html += `</div>`;
+            }
+
+            // Experience (all entries)
+            if (p.experience && p.experience.length) {
+                html += `<div class="section-title"><i class="fas fa-briefcase"></i> Experience</div>`;
+                p.experience.forEach(exp => {
+                    html += `<div style="background:#f0f7ff;padding:14px;border-radius:10px;margin-bottom:12px;border-left:4px solid #0a66c2;">`;
+                    if (exp.title) html += `<div style="font-weight:700;font-size:16px;">${escapeHtml(exp.title)}</div>`;
+                    if (exp.company) html += `<div style="color:#555;font-weight:600;margin-top:2px;">${escapeHtml(exp.company)}</div>`;
+                    if (exp.duration) html += `<div style="color:#888;font-size:13px;margin-top:2px;">${escapeHtml(exp.duration)}</div>`;
+                    if (exp.location) html += `<div style="color:#888;font-size:13px;margin-top:2px;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(exp.location)}</div>`;
+                    html += `</div>`;
+                });
+            }
+
+            // Qualifications / Education
+            if (p.qualifications && p.qualifications.length) {
+                html += `<div class="section-title"><i class="fas fa-graduation-cap"></i> Qualifications</div>`;
+                p.qualifications.forEach(q => {
+                    html += `<div style="background:#f9fafb;padding:10px 14px;border-radius:8px;margin-bottom:8px;border:1px solid #e5e7eb;">`;
+                    if (q.institution) html += `<div style="font-weight:600;">${escapeHtml(q.institution)}</div>`;
+                    if (q.degree) html += `<div style="color:#555;">${escapeHtml(q.degree)}</div>`;
+                    if (q.dates) html += `<div style="color:#888;font-size:13px;">${escapeHtml(q.dates)}</div>`;
+                    html += `</div>`;
+                });
+            }
+
+            // Certifications
+            if (p.certifications && p.certifications.length) {
+                html += `<div class="section-title"><i class="fas fa-certificate"></i> Certifications</div>`;
+                p.certifications.forEach(c => {
+                    html += `<div style="background:#fffbeb;padding:10px 14px;border-radius:8px;margin-bottom:8px;border:1px solid #fde68a;">`;
+                    if (c.name) html += `<div style="font-weight:600;">${escapeHtml(c.name)}</div>`;
+                    if (c.issuer) html += `<div style="color:#555;">${escapeHtml(c.issuer)}</div>`;
+                    if (c.date) html += `<div style="color:#888;font-size:13px;">${escapeHtml(c.date)}</div>`;
+                    html += `</div>`;
+                });
+            }
+
+            if (p.error) html += `<div class="alert alert-error">Error: ${escapeHtml(p.error)}</div>`;
+
+            // Add "Show all" button linking to LinkedIn
+            if (p.profile_url) {
+                html += `<div style="text-align:center; margin-top: 24px; margin-bottom: 24px;">
+                            <a href="${escapeHtml(p.profile_url)}" target="_blank" class="btn btn-primary" style="text-decoration:none; padding:12px 24px; font-size:16px;">
+                                <i class="fab fa-linkedin"></i> Show all on LinkedIn
+                            </a>
+                         </div>`;
+            }
+
+            detailDiv.innerHTML = html;
+            detailDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        updateUIState();
+    </script>
+</body>
+
+</html>
