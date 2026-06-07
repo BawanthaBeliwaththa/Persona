@@ -356,10 +356,10 @@ class LinkedInScraper:
     # Search & other methods
 
     # The search_people method performs a LinkedIn people search based on the provided first name, last name, and optional company. It constructs a search query, navigates to the search results page, scrolls to load more results, and extracts profile URLs and names from the search results. If only a first name is provided without a last name and it looks like a profile URL, it tries to extract that specific profile directly.
-    async def search_people(self, first_name: str, last_name: str, company: str = "", max_results: int = 10) -> List[Dict]:
+    async def search_people(self, first_name: str, last_name: str, company: str = "", max_results: int = 10, force_search: bool = False) -> List[Dict]:
         if not self.is_authenticated:
             raise Exception("Not authenticated")
-        if first_name and not last_name and '@' not in first_name:
+        if not force_search and first_name and not last_name and '@' not in first_name:
             profile = await self.extract_profile(f"https://www.linkedin.com/in/{first_name.strip()}/")
             return [profile] if profile.get('name') else []
         query = " ".join(filter(None, [first_name, last_name, company]))
@@ -373,20 +373,77 @@ class LinkedInScraper:
         for _ in range(4):
             await self.page.evaluate('window.scrollBy(0, 800)')
             await asyncio.sleep(1)
+        html_content = await self.page.content()
+        with open("search_debug.html", "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
         results = await self.page.evaluate('''() => {
             const res = [];
             const seen = new Set();
-            const links = document.querySelectorAll('a[href*="/in/"]');
-            for (let a of links) {
-                let href = a.getAttribute('href');
-                if (!href || href.includes('/search/')) continue;
-                let url = href.split('?')[0];
-                if (!url.startsWith('http')) url = 'https://www.linkedin.com' + url;
-                if (!seen.has(url)) {
-                    seen.add(url);
-                    let name = a.innerText.trim();
-                    if (!name) name = url.split('/in/')[1] || '';
-                    res.push({ profile_url: url, name: name });
+            const containers = document.querySelectorAll('li.reusable-search__result-container, .entity-result__item');
+            if (containers.length > 0) {
+                for (let card of containers) {
+                    let a = card.querySelector('a[href*="/in/"]');
+                    if (!a) continue;
+                    let href = a.getAttribute('href');
+                    if (!href || href.includes('/search/')) continue;
+                    let url = href.split('?')[0];
+                    if (!url.startsWith('http')) url = 'https://www.linkedin.com' + url;
+                    if (!seen.has(url)) {
+                        seen.add(url);
+                        let nameEl = card.querySelector('.entity-result__title-text a, .entity-result__title-text') || a;
+                        let name = nameEl.innerText.trim().split('\\n')[0];
+                        if (!name) name = url.split('/in/')[1] || '';
+                        
+                        let img = '';
+                        let imgs = card.querySelectorAll('img');
+                        for (let im of imgs) {
+                            let src = im.src || im.getAttribute('data-delayed-url') || '';
+                            if (src && src.includes('licdn.com')) {
+                                if (!src.includes('company-logo') && !src.includes('ghost-person')) {
+                                    img = src;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Extract headline if possible to improve quality
+                        let headline = '';
+                        let hlEl = card.querySelector('.entity-result__primary-subtitle');
+                        if (hlEl) headline = hlEl.innerText.trim();
+                        
+                        res.push({ profile_url: url, name: name, profile_picture: img, headline: headline });
+                    }
+                }
+            } else {
+                const links = document.querySelectorAll('a[href*="/in/"]');
+                for (let a of links) {
+                    let href = a.getAttribute('href');
+                    if (!href || href.includes('/search/')) continue;
+                    let url = href.split('?')[0];
+                    if (!url.startsWith('http')) url = 'https://www.linkedin.com' + url;
+                    if (!seen.has(url)) {
+                        seen.add(url);
+                        let name = a.innerText.trim();
+                        if (!name) name = url.split('/in/')[1] || '';
+                        let img = '';
+                        try {
+                            let card = a.parentElement.parentElement;
+                            if (card) {
+                                let imgs = card.querySelectorAll('img');
+                                for (let im of imgs) {
+                                    let src = im.src || im.getAttribute('data-delayed-url') || '';
+                                    if (src && src.includes('licdn.com')) {
+                                        if (!src.includes('company-logo') && !src.includes('ghost-person')) {
+                                            img = src;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch(e) {}
+                        res.push({ profile_url: url, name: name, profile_picture: img });
+                    }
                 }
             }
             return res.slice(0, 15);

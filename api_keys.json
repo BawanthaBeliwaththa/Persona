@@ -1,0 +1,19 @@
+{
+  "api_keys": [
+    {
+      "key": "client_key_12345",
+      "client_name": "Acme Corp",
+      "status": "active"
+    },
+    {
+      "key": "test_api_key_abcde",
+      "client_name": "Test Client",
+      "status": "active"
+    },
+    {
+      "key": "bawantha",
+      "client_name": "Bawantha",
+      "status": "active"
+    }
+  ]
+}
